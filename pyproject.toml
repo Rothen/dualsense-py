@@ -26,9 +26,9 @@ classifiers = [
     "Topic :: Games/Entertainment",
 ]
 dependencies = [
-    "PySDL3==0.9.7b9",
+    "PySDL3==0.9.9b1",
     "hidapi-py==0.1.2",
-    "reactivex==4.0.4",
+    "reactivex==5.1.0",
 ]
 
 [project.urls]
