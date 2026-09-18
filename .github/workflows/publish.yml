@@ -20,7 +20,7 @@ jobs:
                   python-version: "3.12"
 
             - name: Install build tooling
-              run: python -m pip install --upgrade build twine
+              run: python -m pip install --upgrade build twine setuptools-scm
 
             - name: Build sdist and wheel
               run: python -m build
