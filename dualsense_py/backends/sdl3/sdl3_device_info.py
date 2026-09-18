@@ -20,16 +20,16 @@ from ...states import (
 deadzone: float = 0.1
 
 
-class SDL3DeviceInfo(DeviceInfo[LP_SDL_JoystickID, LP_SDL_JoystickID]):
+class SDL3DeviceInfo(DeviceInfo[SDL_JoystickID, SDL_JoystickID]):
 
     __slots__ = (
         "__sdl_opened_gamepad",
         "__button_map",
     )
 
-    def __init__(self, device_id: LP_SDL_JoystickID):
+    def __init__(self, device_id: SDL_JoystickID):
         super().__init__(device_id)
-        self.__sdl_opened_gamepad: LP_SDL_Gamepad | None = None
+        self.__sdl_opened_gamepad: SDL_POINTER[SDL_Gamepad] | None = None
         self.__button_map: list[tuple[int, ButtonValue]] = [
             (SDL_GAMEPAD_BUTTON_SOUTH, self._cross),
             (SDL_GAMEPAD_BUTTON_EAST, self._circle),

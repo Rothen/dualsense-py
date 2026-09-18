@@ -1,6 +1,9 @@
 # type: ignore
 from __future__ import annotations
+import os
 from typing import Type
+
+os.environ.setdefault("SDL_DOC_GENERATOR", "0")
 
 from sdl3 import *
 
