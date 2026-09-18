@@ -79,6 +79,10 @@ class DualSenseController:
     def close(self):
         self._exit_event.set()
         self._read_thread.join()
+    
+    @property
+    def read_thread(self) -> Thread:
+        return self._read_thread
 
     def _read_loop(self) -> None:
         self._device_info.before_start()

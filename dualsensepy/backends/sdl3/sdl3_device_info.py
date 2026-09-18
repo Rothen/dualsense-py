@@ -1,10 +1,11 @@
 # type: ignore
 from __future__ import annotations
-import math
+import ctypes
 
 from sdl3 import *
 
 from ..device_infos import DeviceInfo
+from ...mapping import create_orientation
 from ...readable_value import ButtonValue
 from ...states import (
     Accelerometer,
@@ -24,36 +25,30 @@ class SDL3DeviceInfo(DeviceInfo[LP_SDL_JoystickID, LP_SDL_JoystickID]):
     __slots__ = (
         "__sdl_opened_gamepad",
         "__button_map",
-        "__last_gyro_measurement"
     )
 
     def __init__(self, device_id: LP_SDL_JoystickID):
         super().__init__(device_id)
         self.__sdl_opened_gamepad: LP_SDL_Gamepad | None = None
-        self.__button_map: list[ButtonValue] = [
-            self._cross,
-            self._circle,
-            self._square,
-            self._triangle,
-            self._share,
-            self._ps,
-            self._options,
-            self._l3,
-            self._r3,
-            self._l1,
-            self._r1,
-            self._dpad_up,
-            self._dpad_down,
-            self._dpad_left,
-            self._dpad_right,
-            self._mikrophone,
-            ButtonValue(), # Filler for undefined button
-            ButtonValue(), # Filler for undefined button
-            ButtonValue(), # Filler for undefined button
-            ButtonValue(), # Filler for undefined button
-            self._touch
+        self.__button_map: list[tuple[int, ButtonValue]] = [
+            (SDL_GAMEPAD_BUTTON_SOUTH, self._cross),
+            (SDL_GAMEPAD_BUTTON_EAST, self._circle),
+            (SDL_GAMEPAD_BUTTON_WEST, self._square),
+            (SDL_GAMEPAD_BUTTON_NORTH, self._triangle),
+            (SDL_GAMEPAD_BUTTON_BACK, self._share),
+            (SDL_GAMEPAD_BUTTON_GUIDE, self._ps),
+            (SDL_GAMEPAD_BUTTON_START, self._options),
+            (SDL_GAMEPAD_BUTTON_LEFT_STICK, self._l3),
+            (SDL_GAMEPAD_BUTTON_RIGHT_STICK, self._r3),
+            (SDL_GAMEPAD_BUTTON_LEFT_SHOULDER, self._l1),
+            (SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER, self._r1),
+            (SDL_GAMEPAD_BUTTON_DPAD_UP, self._dpad_up),
+            (SDL_GAMEPAD_BUTTON_DPAD_DOWN, self._dpad_down),
+            (SDL_GAMEPAD_BUTTON_DPAD_LEFT, self._dpad_left),
+            (SDL_GAMEPAD_BUTTON_DPAD_RIGHT, self._dpad_right),
+            (SDL_GAMEPAD_BUTTON_MISC1, self._mikrophone),
+            (SDL_GAMEPAD_BUTTON_TOUCHPAD, self._touch),
         ]
-        self.__last_gyro_measurement: float = 0.0
 
     def open(self):
         self.__sdl_opened_gamepad = SDL_OpenGamepad(self._orig_device_info)
@@ -68,13 +63,22 @@ class SDL3DeviceInfo(DeviceInfo[LP_SDL_JoystickID, LP_SDL_JoystickID]):
         SDL_CloseGamepad(self.__sdl_opened_gamepad)
 
     def _read(self):
+        # Deliberately polls gamepad state instead of draining the SDL event
+        # queue: SDL_PollEvent()/SDL_PumpEvents() may only be called from the
+        # thread that initialized SDL, but DeviceInfo.read() runs on
+        # DualSenseController's dedicated background thread. SDL_UpdateGamepads()
+        # and the SDL_GetGamepad*() getters are documented as safe to call from
+        # any thread.
         if self.__sdl_opened_gamepad is None:
             return
+        
+        SDL_UpdateGamepads()
 
-        event: SDL_Event = SDL_Event()
-        while SDL_PollEvent(event) != 0:
-            # print(SDL_GetGamepadTypeForID(event.gdevice.which), SDL_GAMEPAD_TYPE_PS5)
-            self.__map_event(event)
+        self.__read_buttons()
+        self.__read_left_stick()
+        self.__read_right_stick()
+        self.__read_triggers()
+        self.__read_sensors()
 
     def write(self):
         """
@@ -82,82 +86,48 @@ class SDL3DeviceInfo(DeviceInfo[LP_SDL_JoystickID, LP_SDL_JoystickID]):
         """
         pass
 
-    def __map_event(self, event: SDL_Event) -> None:
-        if event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-            self.__button_map[event.gbutton.button].force_value(True)
-        elif event.type == SDL_EVENT_GAMEPAD_BUTTON_UP:
-            self.__button_map[event.gbutton.button].force_value(False)
-        elif event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION:
-            self._map_axis_motion_event(event.gaxis)
-        elif event.type == SDL_EVENT_GAMEPAD_SENSOR_UPDATE:
-            self._map_sensor_update_event(event.gsensor)
-        elif event.type == SDL_EVENT_GAMEPAD_TOUCHPAD_UP:
-            pass
-        elif event.type == SDL_EVENT_GAMEPAD_TOUCHPAD_DOWN:
-            pass
-        elif event.type == SDL_EVENT_GAMEPAD_TOUCHPAD_MOTION:
-            pass
+    def __read_buttons(self) -> None:
+        for button, value in self.__button_map:
+            value.set_value(bool(SDL_GetGamepadButton(self.__sdl_opened_gamepad, button)))
 
-    def _map_axis_motion_event(self, axis_event: SDL_GamepadAxisEvent) -> None:
-        new_value = ((axis_event.value + 32768) / 65535.0) * 2 - 1
-        if abs(new_value) < deadzone:
-            new_value = 0.0
+    def __read_axis(self, axis: int) -> float:
+        raw_value = SDL_GetGamepadAxis(self.__sdl_opened_gamepad, axis)
+        value = ((raw_value + 32768) / 65535.0) * 2 - 1
+        return 0.0 if abs(value) < deadzone else value
 
-        if axis_event.axis == SDL_GAMEPAD_AXIS_LEFTX:
-            if self.left_joy_stick.value.x == 0.0 and new_value == 0.0:
-                return
-            self._left_joy_stick.force_value(JoyStick(new_value, self._left_joy_stick.value.y))
-        elif axis_event.axis == SDL_GAMEPAD_AXIS_LEFTY:
-            if self.left_joy_stick.value.y == 0.0 and new_value == 0.0:
-                return
-            self._left_joy_stick.force_value(JoyStick(self._left_joy_stick.value.x, new_value))
-        elif axis_event.axis == SDL_GAMEPAD_AXIS_RIGHTX:
-            if self.right_joy_stick.value.x == 0.0 and new_value == 0.0:
-                return
-            self._right_joy_stick.force_value(JoyStick(new_value, self._right_joy_stick.value.y))
-        elif axis_event.axis == SDL_GAMEPAD_AXIS_RIGHTY:
-            if self.right_joy_stick.value.y == 0.0 and new_value == 0.0:
-                return
-            self._right_joy_stick.force_value(JoyStick(self._right_joy_stick.value.x, new_value))
-        elif axis_event.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER:
-            self._l2_trigger.force_value(axis_event.value / 32767.0)
-            self._l2.force_value(self._l2_trigger.value == 1.0)
-        elif axis_event.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER:
-            self._r2_trigger.force_value(axis_event.value / 32767.0)
-            self._r2.force_value(self._r2_trigger.value == 1.0)
+    def __read_left_stick(self) -> None:
+        x = self.__read_axis(SDL_GAMEPAD_AXIS_LEFTX)
+        y = self.__read_axis(SDL_GAMEPAD_AXIS_LEFTY)
+        self._left_joy_stick.set_value(JoyStick(x, y))
 
-    def _map_sensor_update_event(self, sensor_event: SDL_GamepadSensorEvent) -> None:
-        if sensor_event.sensor == SDL_SENSOR_ACCEL:
-            self._accelerometer.force_value(Accelerometer(sensor_event.data[0], sensor_event.data[1], sensor_event.data[2]))
-        elif sensor_event.sensor == SDL_SENSOR_GYRO:
-            self._gyroscope.force_value(Gyroscope(sensor_event.data[0], sensor_event.data[1], sensor_event.data[2]))
+    def __read_right_stick(self) -> None:
+        x = self.__read_axis(SDL_GAMEPAD_AXIS_RIGHTX)
+        y = self.__read_axis(SDL_GAMEPAD_AXIS_RIGHTY)
+        self._right_joy_stick.set_value(JoyStick(x, y))
 
-            alpha: float = 0.98
-            roll_acc = math.atan2(self._accelerometer.value.y, self._accelerometer.value.z)
-            pitch_acc = math.atan2(-self._accelerometer.value.x,
-                                math.sqrt(self._accelerometer.value.y**2 + self._accelerometer.value.z**2))
+    def __read_triggers(self) -> None:
+        l2_value = SDL_GetGamepadAxis(self.__sdl_opened_gamepad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER) / 32767.0
+        r2_value = SDL_GetGamepadAxis(self.__sdl_opened_gamepad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) / 32767.0
+        self._l2_trigger.set_value(l2_value)
+        self._r2_trigger.set_value(r2_value)
+        self._l2.set_value(l2_value == 1.0)
+        self._r2.set_value(r2_value == 1.0)
 
-            dt = (self.__last_gyro_measurement - sensor_event.timestamp) / 1000000.0
-            self.__last_gyro_measurement = sensor_event.timestamp
+    def __read_sensors(self) -> None:
+        accel_data = (ctypes.c_float * 3)()
+        if SDL_GetGamepadSensorData(self.__sdl_opened_gamepad, SDL_SENSOR_ACCEL, accel_data, 3):
+            self._accelerometer.set_value(Accelerometer(accel_data[0], accel_data[1], accel_data[2]))
 
-            roll = alpha * (self._orientation.value.roll + self._gyroscope.value.x * dt) + \
-                (1 - alpha) * roll_acc
-            pitch = alpha * (self._orientation.value.pitch + self._gyroscope.value.y * dt) + \
-                (1 - alpha) * pitch_acc
-            yaw = self._orientation.value.yaw + self._gyroscope.value.z * dt  # yaw only from gyro
-            self._orientation.force_value(Orientation(
-                pitch=pitch,
-                roll=roll,
-                yaw=yaw
-            ))
+        gyro_data = (ctypes.c_float * 3)()
+        if not SDL_GetGamepadSensorData(self.__sdl_opened_gamepad, SDL_SENSOR_GYRO, gyro_data, 3):
+            return
+
+        self._gyroscope.set_value(Gyroscope(gyro_data[0], gyro_data[1], gyro_data[2]))
+
+        dt = (self._read_time - self._last_read_time) if self._last_read_time else 0.0
+        self._orientation.set_value(
+            create_orientation(self._orientation.value, self._accelerometer.value, self._gyroscope.value, dt)
+        )
 
     def set_led(self, r: int, g: int, b: int) -> bool:
         return SDL_SetGamepadLED(self.__sdl_opened_gamepad, r, g, b)
-
-    def test(self) -> None:
-        """out_report = Usb01OutReport()
-        out_report.microphone_led = 0x01
-        data = bytes(out_report.data())
-        effect_data = data
-        buffer = ctypes.create_string_buffer(effect_data)
-        SDL_SendGamepadEffect(self.__sdl_opened_gamepad, buffer, len(effect_data))"""

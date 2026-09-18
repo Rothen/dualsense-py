@@ -63,6 +63,12 @@ finally:
     controller.close()
 ```
 
+A fuller, runnable version of this (button/stick/battery logging plus a light bar color cycle) lives at [examples/basic_usage.py](examples/basic_usage.py):
+
+```bash
+python examples/basic_usage.py
+```
+
 ## Controller discovery
 
 The package includes helper functions for locating controllers:
@@ -81,6 +87,23 @@ for controller in controllers:
 # Generic discovery by vendor/product IDs
 all_controllers = get_all_controllers(0x054C, 0x0CE6)
 ```
+
+## Backends
+
+`dualsensepy` ships two backends for talking to the controller:
+
+- **hidapi** (`get_all_dual_sense_controllers()`, `get_all_controllers()`) — reads raw HID reports directly. This is the default used above and needs no extra setup. LED control (`set_led`) is not implemented on this backend yet and is a no-op.
+- **SDL3** (`get_available_controllers()`) — uses SDL3's gamepad API for broader controller support and working LED control, at the cost of an explicit init step:
+
+```python
+from dualsensepy.backends import SDL3Backend
+from dualsensepy.utils import get_available_controllers
+
+SDL3Backend.init()
+controllers = get_available_controllers()
+```
+
+Call `SDL3Backend.init()` once before discovering controllers with `get_available_controllers()`. Controller state is read by polling (`SDL_UpdateGamepads()` plus the `SDL_GetGamepad*()` getters) rather than draining SDL's event queue, since `DualSenseController` reads each device from its own background thread and SDL only allows event pumping from the thread that called `SDL_Init`.
 
 ## Event API
 
@@ -156,6 +179,8 @@ controller.set_led(255, 255, 0)  # yellow
 
 The values are standard 8-bit channel values from 0 to 255.
 
+> LED control currently requires the SDL3 backend — see [Backends](#backends). On the `hidapi` backend, `set_led` is a no-op.
+
 ## Runtime properties
 
 The controller instance also exposes timing metadata while the read loop is running:
@@ -170,6 +195,17 @@ print(controller.loop_time)
 - The project is currently in an early stage and is best treated as a low-level controller library.
 - Controller access depends on the underlying HID / backend support in the current environment.
 - Event callbacks are subscription-based and can be used to build reactive input loops or game automation logic.
+
+## Development
+
+Install the package with its test dependencies and run the test suite with `pytest`:
+
+```bash
+pip install -e .[dev]
+pytest
+```
+
+The tests drive `DualSenseController` against an in-memory fake device (see `tests/conftest.py`), so no physical controller is required to run them.
 
 ## License
 

@@ -23,9 +23,9 @@ class DeviceInfo(Generic[ID, T]):
     Class to hold device information.
     """
     
-    def __init__(self, id: ID, orig_device_info: T):
+    """def __init__(self, id: ID, orig_device_info: T):
         self.id: ID = id
-        self.orig_device_info: T = orig_device_info
+        self.orig_device_info: T = orig_device_info"""
 
     @abstractmethod
     def open(self):

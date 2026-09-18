@@ -26,10 +26,13 @@ classifiers = [
     "Topic :: Games/Entertainment",
 ]
 dependencies = [
-    "PySDL3==0.9.9b1",
+    "PySDL3==0.9.12b1",
     "hidapi-py==0.1.2",
     "reactivex==5.1.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
 
 [project.urls]
 Homepage = "https://github.com/Rothen/dualsensepy"
@@ -44,3 +47,6 @@ dualsensepy = ["py.typed"]
 
 [tool.setuptools_scm]
 version_file = "dualsensepy/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
