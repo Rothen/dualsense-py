@@ -38,3 +38,6 @@ Issues = "https://github.com/Rothen/dualsensepy/issues"
 
 [tool.setuptools.packages.find]
 include = ["dualsensepy*"]
+
+[tool.setuptools.package-data]
+dualsensepy = ["py.typed"]
