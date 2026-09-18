@@ -1,7 +1,7 @@
 import time
 
-from dualsensepy.dual_sense_controller import DualSenseController
-from dualsensepy.states import Battery, JoyStick
+from dualsense_py.dual_sense_controller import DualSenseController
+from dualsense_py.states import Battery, JoyStick
 from conftest import FakeDeviceInfo
 
 def test_open_and_close_drive_the_device_lifecycle(fake_device_info: FakeDeviceInfo):

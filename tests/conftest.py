@@ -1,7 +1,7 @@
 import pytest
 from typing import Any
 
-from dualsensepy.backends.device_infos import DeviceInfo
+from dualsense_py.backends.device_infos import DeviceInfo
 
 
 class FakeDeviceInfo(DeviceInfo[Any, Any]):

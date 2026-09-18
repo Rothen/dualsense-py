@@ -8,10 +8,10 @@ Usage:
 import sys
 import time
 
-from dualsensepy import DualSenseController
-from dualsensepy.backends import SDL3Backend
-from dualsensepy.states import Battery, JoyStick
-from dualsensepy.utils import get_available_controllers
+from dualsense_py import DualSenseController
+from dualsense_py.backends import SDL3Backend
+from dualsense_py.states import Battery, JoyStick
+from dualsense_py.utils import get_available_controllers
 
 
 def print_stick(name: str, stick: JoyStick) -> None:

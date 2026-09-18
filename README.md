@@ -1,4 +1,4 @@
-# dualsensepy
+# dualsense-py
 
 A Python library for reading state from a DualSense controller and reacting to input events in real time.
 
@@ -25,7 +25,7 @@ This package exposes the controller as a live stream of events and state updates
 Install from PyPI:
 
 ```bash
-pip install dualsensepy
+pip install dualsense-py
 ```
 
 Install from the repository source:
@@ -41,7 +41,7 @@ pip install .
 ```python
 import time
 
-from dualsensepy.utils import get_all_dual_sense_controllers
+from dualsense_py.utils import get_all_dual_sense_controllers
 
 controllers = get_all_dual_sense_controllers()
 if not controllers:
@@ -74,7 +74,7 @@ python examples/basic_usage.py
 The package includes helper functions for locating controllers:
 
 ```python
-from dualsensepy.utils import (
+from dualsense_py.utils import (
     get_all_controllers,
     get_all_dual_sense_controllers,
     get_available_controllers,
@@ -90,14 +90,14 @@ all_controllers = get_all_controllers(0x054C, 0x0CE6)
 
 ## Backends
 
-`dualsensepy` ships two backends for talking to the controller:
+`dualsense-py` ships two backends for talking to the controller:
 
 - **hidapi** (`get_all_dual_sense_controllers()`, `get_all_controllers()`) — reads raw HID reports directly. This is the default used above and needs no extra setup. LED control (`set_led`) is not implemented on this backend yet and is a no-op.
 - **SDL3** (`get_available_controllers()`) — uses SDL3's gamepad API for broader controller support and working LED control, at the cost of an explicit init step:
 
 ```python
-from dualsensepy.backends import SDL3Backend
-from dualsensepy.utils import get_available_controllers
+from dualsense_py.backends import SDL3Backend
+from dualsense_py.utils import get_available_controllers
 
 SDL3Backend.init()
 controllers = get_available_controllers()

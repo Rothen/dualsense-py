@@ -50,7 +50,7 @@ jobs:
         runs-on: ubuntu-latest
         environment:
             name: pypi
-            url: https://pypi.org/project/dualsensepy/
+            url: https://pypi.org/project/dualsense-py/
         permissions:
             id-token: write
         steps:

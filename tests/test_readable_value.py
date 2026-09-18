@@ -1,4 +1,4 @@
-from dualsensepy.readable_value import ButtonValue, ReadableValue
+from dualsense_py.readable_value import ButtonValue, ReadableValue
 
 
 def test_set_value_notifies_only_on_change():

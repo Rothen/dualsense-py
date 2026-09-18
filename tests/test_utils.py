@@ -1,9 +1,9 @@
 from unittest.mock import Mock
 from pytest import MonkeyPatch
 
-import dualsensepy.utils as utils_module
-from dualsensepy.backends.backend import Backend
-from dualsensepy.dual_sense_controller import DualSenseController
+import dualsense_py.utils as utils_module
+from dualsense_py.backends.backend import Backend
+from dualsense_py.dual_sense_controller import DualSenseController
 
 
 def test_get_all_controllers_wraps_each_device_info(monkeypatch: MonkeyPatch):
