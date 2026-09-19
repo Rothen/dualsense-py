@@ -5,3 +5,5 @@ from .joy_stick import JoyStick
 from .orientation import Orientation
 from .touch_finger import TouchFinger
 from .trigger_feedback import TriggerFeedback
+
+__all__ = ["Accelerometer", "Battery", "Gyroscope", "JoyStick", "Orientation", "TouchFinger", "TriggerFeedback"]

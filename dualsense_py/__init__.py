@@ -1,6 +1,8 @@
 from .dual_sense_controller import DualSenseController
 from .utils import get_all_controllers, get_all_dual_sense_controllers, get_all_xbox_360_controllers
 
+__all__ = ["DualSenseController", "get_all_controllers", "get_all_dual_sense_controllers", "get_all_xbox_360_controllers"]
+
 try:
     from ._version import __version__
 except ImportError:
